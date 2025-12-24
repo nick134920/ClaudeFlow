@@ -138,8 +138,23 @@ logs/
 
 ### 生产环境部署
 
+**方式一：直接运行**
+
 ```bash
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+```
+
+**方式二：Docker Compose**
+
+```bash
+# 构建并启动
+docker-compose up -d
+
+# 查看日志
+docker-compose logs -f
+
+# 停止服务
+docker-compose down
 ```
 
 ## 项目结构
