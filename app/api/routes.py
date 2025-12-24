@@ -2,7 +2,7 @@ from fastapi import APIRouter, BackgroundTasks, Query, Request
 from pydantic import ValidationError
 
 from app.api.models import SummarizeRequest, TaskResponse
-from app.agents.summarize.agent import run_summarize_agent
+from app.agents.newprojectanalyse.agent import run_newprojectanalyse_agent
 from app.config import API_KEY
 from app.core.logging import request_logger
 from app.core.task_registry import task_registry
@@ -54,6 +54,6 @@ async def summarize(
     )
 
     # 添加后台任务
-    background_tasks.add_task(run_summarize_agent, body.url)
+    background_tasks.add_task(run_newprojectanalyse_agent, body.url)
 
     return TaskResponse(success=True, task_id=task_id)
