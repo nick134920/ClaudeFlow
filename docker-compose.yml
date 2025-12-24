@@ -15,4 +15,6 @@ services:
       # Claude Agent SDK 环境变量
       - ANTHROPIC_BASE_URL=${ANTHROPIC_BASE_URL}
       - ANTHROPIC_AUTH_TOKEN=${ANTHROPIC_AUTH_TOKEN}
+      # 允许在容器中以 root 运行
+      - IS_SANDBOX=1
     restart: unless-stopped
