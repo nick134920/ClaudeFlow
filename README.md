@@ -147,6 +147,10 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
 **方式二：Docker Compose**
 
 ```bash
+# 配置环境变量
+cp .env.example .env
+# 编辑 .env 填入 ANTHROPIC_BASE_URL 和 ANTHROPIC_AUTH_TOKEN
+
 # 构建并启动
 docker-compose up -d
 
