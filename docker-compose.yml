@@ -12,4 +12,7 @@ services:
       - ./logs:/app/logs
     environment:
       - TZ=Asia/Shanghai
+      # Claude Agent SDK 环境变量
+      - ANTHROPIC_BASE_URL=${ANTHROPIC_BASE_URL}
+      - ANTHROPIC_AUTH_TOKEN=${ANTHROPIC_AUTH_TOKEN}
     restart: unless-stopped
