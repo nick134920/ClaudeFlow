@@ -5,6 +5,7 @@ log_level: INFO
 
 # newprojectanalyse agent 配置
 newprojectanalyse:
+  model: claude-sonnet-4-20250514
   notion_parent_page_id: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
   max_turns: 15
   mcp_servers:

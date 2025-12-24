@@ -1,7 +1,7 @@
 from claude_agent_sdk import ClaudeAgentOptions
 
 from app.agents.base import BaseAgent
-from app.agents.newprojectanalyse.config import NOTION_PARENT_PAGE_ID, MAX_TURNS, MCP_SERVERS
+from app.agents.newprojectanalyse.config import MODEL, NOTION_PARENT_PAGE_ID, MAX_TURNS, MCP_SERVERS
 
 
 class NewProjectAnalyseAgent(BaseAgent):
@@ -29,6 +29,7 @@ class NewProjectAnalyseAgent(BaseAgent):
 
     def get_options(self) -> ClaudeAgentOptions:
         return ClaudeAgentOptions(
+            model=MODEL,
             max_turns=MAX_TURNS,
             permission_mode="bypassPermissions",  # 自动批准所有工具使用
             mcp_servers=MCP_SERVERS,
