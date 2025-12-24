@@ -72,37 +72,35 @@ class BaseAgent(ABC):
                     # 新的 Turn 开始
                     logger.log_turn_start()
 
-                    # 解析 AssistantMessage 中的 content blocks
-                    msg_content = getattr(message, "message", None)
-                    if msg_content:
-                        blocks = getattr(msg_content, "content", [])
-                        for block in blocks:
-                            if isinstance(block, ThinkingBlock):
-                                # 记录思考过程
-                                thinking_text = getattr(block, "thinking", "")
-                                if thinking_text:
-                                    logger.log_thinking(thinking_text)
+                    # AssistantMessage.content 直接是 blocks 列表
+                    blocks = getattr(message, "content", [])
+                    for block in blocks:
+                        if isinstance(block, ThinkingBlock):
+                            # 记录思考过程
+                            thinking_text = getattr(block, "thinking", "")
+                            if thinking_text:
+                                logger.log_thinking(thinking_text)
 
-                            elif isinstance(block, TextBlock):
-                                # 记录文本回复
-                                text = getattr(block, "text", "")
-                                if text:
-                                    logger.log_text(text)
+                        elif isinstance(block, TextBlock):
+                            # 记录文本回复
+                            text = getattr(block, "text", "")
+                            if text:
+                                logger.log_text(text)
 
-                            elif isinstance(block, ToolUseBlock):
-                                # 记录工具调用
-                                tool_id = getattr(block, "id", "")
-                                tool_start_times[tool_id] = time.time()
-                                tool_name = getattr(block, "name", "unknown")
-                                tool_input = getattr(block, "input", {})
-                                logger.log_tool_call(tool_name, tool_id, tool_input)
+                        elif isinstance(block, ToolUseBlock):
+                            # 记录工具调用
+                            tool_id = getattr(block, "id", "")
+                            tool_start_times[tool_id] = time.time()
+                            tool_name = getattr(block, "name", "unknown")
+                            tool_input = getattr(block, "input", {})
+                            logger.log_tool_call(tool_name, tool_id, tool_input)
 
                 elif isinstance(message, UserMessage):
                     # 工具结果在 UserMessage 中
-                    msg_content = getattr(message, "message", None)
-                    if msg_content:
-                        blocks = getattr(msg_content, "content", [])
-                        for block in blocks:
+                    # UserMessage.content 可能是 str 或 list
+                    msg_content = getattr(message, "content", None)
+                    if isinstance(msg_content, list):
+                        for block in msg_content:
                             if isinstance(block, ToolResultBlock):
                                 tool_id = getattr(block, "tool_use_id", "")
                                 start_time = tool_start_times.get(tool_id, 0)
@@ -112,7 +110,7 @@ class BaseAgent(ABC):
                                 logger.log_tool_result(tool_id, content, is_error, duration)
 
                 elif isinstance(message, ResultMessage):
-                    cost_usd = getattr(message, "cost_usd", 0)
+                    cost_usd = getattr(message, "total_cost_usd", 0) or 0
                     num_turns = getattr(message, "num_turns", 0)
 
             logger.finish(success=True, num_turns=num_turns, cost_usd=cost_usd)

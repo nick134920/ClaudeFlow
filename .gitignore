@@ -1,3 +1,6 @@
 .env
 __pycache__/
 *.pyc
+
+# 日志目录
+logs/
