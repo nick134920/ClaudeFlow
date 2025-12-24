@@ -1,0 +1,30 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+.venv
+venv
+.env
+
+# 日志
+logs/
+
+# 配置（通过 volume 挂载）
+config.yaml
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# 文档
+docs/
+*.md
+
+# 其他
+.DS_Store
