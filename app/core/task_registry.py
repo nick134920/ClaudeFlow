@@ -1,4 +1,4 @@
-import time
+from datetime import datetime
 
 
 def generate_task_id(module: str) -> str:
@@ -9,10 +9,10 @@ def generate_task_id(module: str) -> str:
         module: 模块名称（如 "newprojectanalyse"）
 
     Returns:
-        任务 ID（如 "newprojectanalyse_1735056000"）
+        任务 ID（如 "newprojectanalyse_251224_23_33_12"）
     """
-    timestamp = int(time.time())
-    return f"{module}_{timestamp}"
+    time_str = datetime.now().strftime("%y%m%d_%H_%M_%S")
+    return f"{module}_{time_str}"
 
 
 class TaskRegistry:
