@@ -1,7 +1,6 @@
 from fastapi import APIRouter, BackgroundTasks, Query, Request
-from pydantic import ValidationError
 
-from app.api.models import SummarizeRequest, TaskResponse
+from app.api.models import NewProjectAnalyseRequest, TaskResponse
 from app.agents.newprojectanalyse.agent import run_newprojectanalyse_agent
 from app.config import API_KEY
 from app.core.logging import request_logger
@@ -18,15 +17,15 @@ def get_client_ip(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
-@router.post("/summarize", response_model=TaskResponse)
-async def summarize(
+@router.post("/newprojectanalyse", response_model=TaskResponse)
+async def newprojectanalyse(
     request: Request,
-    body: SummarizeRequest,
+    body: NewProjectAnalyseRequest,
     background_tasks: BackgroundTasks,
     api_key: str = Query(..., description="API Key"),
 ):
     """
-    提交 URL 摘要任务
+    提交新项目分析任务
 
     - 验证 API Key
     - 验证 URL 格式
@@ -34,7 +33,7 @@ async def summarize(
     - 返回任务 ID
     """
     client_ip = get_client_ip(request)
-    path = "/summarize"
+    path = "/newprojectanalyse"
 
     # 验证 API Key
     if api_key != API_KEY:
@@ -45,7 +44,7 @@ async def summarize(
         return TaskResponse(success=False, message="Invalid API Key")
 
     # 生成任务 ID
-    task_id = task_registry.generate_id("summarize")
+    task_id = task_registry.generate_id("newprojectanalyse")
 
     # 记录请求日志
     request_logger.log(
