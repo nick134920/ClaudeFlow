@@ -1,0 +1,22 @@
+# 全局配置
+api_key: your-secret-key
+log_dir: logs
+log_level: INFO
+
+# newprojectanalyse agent 配置
+newprojectanalyse:
+  notion_parent_page_id: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+  max_turns: 15
+  mcp_servers:
+    firecrawl:
+      type: stdio
+      command: npx
+      args: ["-y", "firecrawl-mcp"]
+      env:
+        FIRECRAWL_API_KEY: your-firecrawl-api-key
+    notion:
+      type: stdio
+      command: npx
+      args: ["-y", "@notionhq/notion-mcp-server"]
+      env:
+        NOTION_TOKEN: your-notion-token
