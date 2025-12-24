@@ -2,8 +2,8 @@ import re
 from pydantic import BaseModel, field_validator
 
 
-class SummarizeRequest(BaseModel):
-    """摘要请求模型"""
+class NewProjectAnalyseRequest(BaseModel):
+    """新项目分析请求模型"""
     url: str
 
     @field_validator("url")
