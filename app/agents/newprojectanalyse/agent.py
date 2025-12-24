@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from claude_agent_sdk import ClaudeAgentOptions
 
 from app.agents.base import BaseAgent
@@ -10,6 +12,7 @@ class NewProjectAnalyseAgent(BaseAgent):
     MODULE_NAME = "newprojectanalyse"
 
     def get_prompt(self, url: str) -> str:
+        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         return f"""
 请完成以下任务：
 
@@ -24,7 +27,7 @@ class NewProjectAnalyseAgent(BaseAgent):
 4. 使用 mcp__notion__API-post-page 工具在父页面 {NOTION_PARENT_PAGE_ID} 下创建一个新 Page：
    - 标题：生成的中文标题
    - 内容：Markdown 格式的总结
-   - 内容顶部增加原始项目URL {url}
+   - 内容顶部增加收录时间 {current_time} 和原始项目URL {url}
 """
 
     def get_options(self) -> ClaudeAgentOptions:
