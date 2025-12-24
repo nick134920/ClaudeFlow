@@ -20,3 +20,10 @@ class TaskResponse(BaseModel):
     success: bool
     task_id: str | None = None
     message: str | None = None
+
+
+class HealthCheckResponse(BaseModel):
+    """Agent 健康检查响应模型"""
+    healthy: bool
+    response: str | None = None
+    error: str | None = None
