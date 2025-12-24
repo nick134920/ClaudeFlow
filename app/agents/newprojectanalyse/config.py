@@ -1,8 +1,8 @@
-import os
-from dotenv import load_dotenv
+from app.config import get_agent_config
 
-load_dotenv()
+_agent_config = get_agent_config("newprojectanalyse")
 
-# newprojectanalyse 模块配置（使用 NEWPROJECTANALYSE_ 前缀）
-NOTION_PARENT_PAGE_ID: str = os.getenv("NEWPROJECTANALYSE_NOTION_PARENT_PAGE_ID", "")
-MAX_TURNS: int = int(os.getenv("NEWPROJECTANALYSE_MAX_TURNS", "15"))
+# newprojectanalyse 模块配置
+NOTION_PARENT_PAGE_ID: str = _agent_config.get("notion_parent_page_id", "")
+MAX_TURNS: int = _agent_config.get("max_turns", 15)
+MCP_SERVERS: dict = _agent_config.get("mcp_servers", {})

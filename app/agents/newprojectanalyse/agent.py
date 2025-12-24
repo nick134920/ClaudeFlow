@@ -1,27 +1,7 @@
 from claude_agent_sdk import ClaudeAgentOptions
 
 from app.agents.base import BaseAgent
-from app.agents.newprojectanalyse.config import NOTION_PARENT_PAGE_ID, MAX_TURNS
-
-# MCP 服务器配置
-MCP_SERVERS = {
-    "firecrawl": {
-        "type": "stdio",
-        "command": "npx",
-        "args": ["-y", "firecrawl-mcp"],
-        "env": {
-            "FIRECRAWL_API_KEY": "REDACTED_FIRECRAWL_KEY"
-        }
-    },
-    "notion": {
-        "type": "stdio",
-        "command": "npx",
-        "args": ["-y", "@notionhq/notion-mcp-server"],
-        "env": {
-            "NOTION_TOKEN": "REDACTED_NOTION_TOKEN"
-        }
-    }
-}
+from app.agents.newprojectanalyse.config import NOTION_PARENT_PAGE_ID, MAX_TURNS, MCP_SERVERS
 
 
 class NewProjectAnalyseAgent(BaseAgent):
