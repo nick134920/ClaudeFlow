@@ -124,6 +124,30 @@ curl -X POST "http://localhost:8000/newprojectanalyse?api_key=your-api-key" \
 }
 ```
 
+**Agent 健康检查**
+
+```bash
+curl "http://localhost:8000/check-agent-health?api_key=your-api-key"
+```
+
+**响应示例**
+
+```json
+// 成功
+{
+  "healthy": true,
+  "response": "I am Claude, an AI assistant made by Anthropic...",
+  "error": null
+}
+
+// 失败
+{
+  "healthy": false,
+  "response": null,
+  "error": "错误信息"
+}
+```
+
 ### 日志查看
 
 任务执行日志保存在 `logs/` 目录：
