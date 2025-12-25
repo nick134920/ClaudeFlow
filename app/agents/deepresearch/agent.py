@@ -12,10 +12,9 @@ from app.agents.deepresearch.config import (
 )
 from app.agents.deepresearch.prompts.lead_agent import get_lead_agent_prompt
 from app.agents.deepresearch.prompts.researcher import get_researcher_prompt
+from app.agents.deepresearch.schema import NOTION_OUTPUT_SCHEMA
 from app.services.notion import (
     NotionService,
-    NotionWriteError,
-    parse_agent_output,
     blocks_to_notion_format,
 )
 
@@ -49,23 +48,23 @@ class DeepResearchAgent(BaseAgent):
             mcp_servers=MCP_SERVERS,
             agents=agents,
             allowed_tools=["Task"],
+            output_format=NOTION_OUTPUT_SCHEMA,
         )
 
     def get_input_data(self, topic: str) -> dict:
         return {"topic": topic}
 
-    async def process_final_output(self, final_text: str, **kwargs) -> None:
-        """处理最终输出，写入 Notion"""
-        if not final_text:
+    async def process_structured_output(self, structured_output: dict, **kwargs) -> None:
+        """处理结构化输出，写入 Notion"""
+        if not structured_output:
             return
 
-        parsed = parse_agent_output(final_text)
-        notion_blocks = blocks_to_notion_format(parsed["blocks"])
+        notion_blocks = blocks_to_notion_format(structured_output["blocks"])
 
         notion_service = NotionService(NOTION_TOKEN)
         notion_service.create_page(
             parent_page_id=NOTION_PARENT_PAGE_ID,
-            title=parsed["title"],
+            title=structured_output["title"],
             blocks=notion_blocks,
         )
 

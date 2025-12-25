@@ -44,10 +44,23 @@ class BaseAgent(ABC):
 
     async def process_final_output(self, final_text: str, **kwargs) -> None:
         """
-        处理 Agent 的最终输出（子类可覆盖）
+        处理 Agent 的最终文本输出（子类可覆盖）
 
         Args:
             final_text: Agent 输出的文本
+            **kwargs: 传递给 run() 的参数
+        """
+        pass
+
+    async def process_structured_output(self, structured_output: Any, **kwargs) -> None:
+        """
+        处理 Agent 的结构化输出（子类可覆盖）
+
+        当使用 output_format 时，SDK 会返回 structured_output。
+        此方法优先于 process_final_output 被调用。
+
+        Args:
+            structured_output: SDK 返回的结构化数据
             **kwargs: 传递给 run() 的参数
         """
         pass
@@ -75,6 +88,7 @@ class BaseAgent(ABC):
         tool_start_times: Dict[str, float] = {}  # tool_use_id -> start_time
         num_turns = 0
         cost_usd = 0.0
+        structured_output = None  # 结构化输出（使用 output_format 时）
         messages_collected = []  # 收集所有消息
 
         try:
@@ -124,23 +138,27 @@ class BaseAgent(ABC):
                 elif isinstance(message, ResultMessage):
                     cost_usd = getattr(message, "total_cost_usd", 0) or 0
                     num_turns = getattr(message, "num_turns", 0)
+                    structured_output = getattr(message, "structured_output", None)
 
-            # 收集最终文本输出（查找包含 JSON 的输出）
-            final_text = ""
-            for msg in reversed(messages_collected):
-                if isinstance(msg, AssistantMessage):
-                    for block in getattr(msg, "content", []):
-                        if isinstance(block, TextBlock):
-                            text = getattr(block, "text", "")
-                            if text and "```json" in text:
-                                final_text = text
-                                break
-                    if final_text:
-                        break
+            # 处理最终输出（优先使用结构化输出）
+            if structured_output is not None:
+                await self.process_structured_output(structured_output, **kwargs)
+            else:
+                # 回退：收集最终文本输出（查找包含 JSON 的输出）
+                final_text = ""
+                for msg in reversed(messages_collected):
+                    if isinstance(msg, AssistantMessage):
+                        for block in getattr(msg, "content", []):
+                            if isinstance(block, TextBlock):
+                                text = getattr(block, "text", "")
+                                if text and "```json" in text:
+                                    final_text = text
+                                    break
+                        if final_text:
+                            break
 
-            # 处理最终输出
-            if final_text:
-                await self.process_final_output(final_text, **kwargs)
+                if final_text:
+                    await self.process_final_output(final_text, **kwargs)
 
             logger.finish(success=True, num_turns=num_turns, cost_usd=cost_usd)
 

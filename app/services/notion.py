@@ -1,8 +1,6 @@
 """Notion API 服务封装"""
 import time
 import logging
-import json
-import re
 
 from notion_client import Client
 from notion_client.errors import APIResponseError
@@ -204,39 +202,6 @@ class NotionService:
 
         self._retry_operation(_append)
         logger.info("块追加成功")
-
-
-def parse_agent_output(output: str) -> dict:
-    """
-    从 Agent 输出中提取 JSON
-
-    Args:
-        output: Agent 的文本输出
-
-    Returns:
-        解析后的字典 {"title": str, "blocks": list}
-    """
-    # 尝试提取 markdown 代码块中的 JSON
-    code_block_pattern = r"```(?:json)?\s*\n?([\s\S]*?)\n?```"
-    matches = re.findall(code_block_pattern, output)
-
-    for match in matches:
-        try:
-            data = json.loads(match.strip())
-            if "title" in data and "blocks" in data:
-                return data
-        except json.JSONDecodeError:
-            continue
-
-    # 尝试直接解析整个输出
-    try:
-        data = json.loads(output.strip())
-        if "title" in data and "blocks" in data:
-            return data
-    except json.JSONDecodeError:
-        pass
-
-    raise ValueError("无法从 Agent 输出中解析有效的 JSON 结构")
 
 
 def blocks_to_notion_format(blocks: list[dict]) -> list[dict]:
