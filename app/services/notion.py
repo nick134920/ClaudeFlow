@@ -1,7 +1,8 @@
 """Notion API 服务封装"""
 import time
 import logging
-from typing import Optional
+import json
+import re
 
 from notion_client import Client
 from notion_client.errors import APIResponseError
@@ -20,6 +21,12 @@ class BlockBuilder:
     @staticmethod
     def _rich_text(content: str) -> list:
         """构建 rich_text 数组"""
+        # Notion API 限制单个 rich_text 内容最大 2000 字符
+        if len(content) > 2000:
+            logger.warning(
+                f"内容长度 {len(content)} 超过 Notion API 限制 2000 字符，将被截断"
+            )
+            content = content[:2000]
         return [{"type": "text", "text": {"content": content}}]
 
     @staticmethod
@@ -128,8 +135,14 @@ class NotionService:
                     time.sleep(delay)
             except Exception as e:
                 last_error = e
-                logger.error(f"意外错误: {e}")
-                raise NotionWriteError(f"Notion 操作失败: {e}") from e
+                logger.warning(
+                    f"非 API 错误 (尝试 {attempt + 1}/{self.MAX_RETRIES}): {e}"
+                )
+                if attempt < self.MAX_RETRIES - 1:
+                    # 非 API 错误使用较短的重试延迟
+                    delay = 1
+                    logger.info(f"等待 {delay} 秒后重试...")
+                    time.sleep(delay)
 
         raise NotionWriteError(
             f"Notion 操作在 {self.MAX_RETRIES} 次重试后失败: {last_error}"
@@ -203,9 +216,6 @@ def parse_agent_output(output: str) -> dict:
     Returns:
         解析后的字典 {"title": str, "blocks": list}
     """
-    import json
-    import re
-
     # 尝试提取 markdown 代码块中的 JSON
     code_block_pattern = r"```(?:json)?\s*\n?([\s\S]*?)\n?```"
     matches = re.findall(code_block_pattern, output)
