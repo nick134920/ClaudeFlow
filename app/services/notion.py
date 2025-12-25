@@ -139,6 +139,18 @@ class BlockBuilder:
             }
         }
 
+    @staticmethod
+    def callout(text: str, emoji: str = "💡") -> dict:
+        """构建标注块"""
+        return {
+            "object": "block",
+            "type": "callout",
+            "callout": {
+                "rich_text": BlockBuilder._rich_text(text),
+                "icon": {"type": "emoji", "emoji": emoji}
+            }
+        }
+
 
 class NotionService:
     """Notion API 封装服务"""
@@ -314,6 +326,12 @@ def blocks_to_notion_format(blocks: list[dict]) -> list[dict]:
             result.append(BlockBuilder.to_do(
                 block.get("content", ""),
                 block.get("checked", False)
+            ))
+
+        elif block_type == "callout":
+            result.append(BlockBuilder.callout(
+                block.get("content", ""),
+                block.get("emoji", "💡")
             ))
 
         else:

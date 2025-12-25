@@ -58,7 +58,7 @@ async def newprojectanalyse(
     # 添加后台任务
     background_tasks.add_task(run_newprojectanalyse_agent, body.url)
 
-    return TaskResponse(success=True, task_id=task_id)
+    return TaskResponse(success=True, task_id=task_id, input={"url": body.url})
 
 
 @router.get("/check-agent-health", response_model=HealthCheckResponse)
@@ -157,4 +157,4 @@ async def deepresearch(
     # 添加后台任务
     background_tasks.add_task(run_deepresearch_agent, body.topic)
 
-    return TaskResponse(success=True, task_id=task_id)
+    return TaskResponse(success=True, task_id=task_id, input={"topic": body.topic})

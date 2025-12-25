@@ -30,19 +30,23 @@ class NewProjectAnalyseAgent(BaseAgent):
 
 1. 使用 mcp__firecrawl__firecrawl_scrape 工具抓取这个 URL 的内容：{url}
 
-2. 识别项目名称，并生成一个简洁的中文标题（10字以内）
+2. 如果是 GitHub 项目，使用 GitHub API 获取项目统计信息：
+   - 访问 https://api.github.com/repos/{{owner}}/{{repo}} 获取 star、fork 数量和最后更新时间
+   - 访问 https://api.github.com/repos/{{owner}}/{{repo}}/commits?per_page=1 获取最后 commit 时间
 
-3. 将内容总结并输出为以下 JSON 格式（必须用 ```json 包裹）：
+3. 识别项目名称，并生成一个简洁的中文标题（10字以内）
+
+4. 将内容总结并输出为以下 JSON 格式（必须用 ```json 包裹）：
 
 ```json
 {{
   "title": "项目名称-中文标题-{current_date}",
   "blocks": [
-    {{"type": "paragraph", "content": "任务时间: {current_time}"}},
     {{"type": "bookmark", "url": "{url}"}},
+    {{"type": "callout", "content": "⭐ Stars: 1234 | 🍴 Forks: 567 | 📅 最后提交: 2024-01-01", "emoji": "📊"}},
     {{"type": "divider"}},
     {{"type": "heading_1", "content": "项目概述"}},
-    {{"type": "paragraph", "content": "项目简介...（如果是 GitHub 项目，包含 star/fork/最后更新信息）"}},
+    {{"type": "paragraph", "content": "项目简介..."}},
     {{"type": "heading_1", "content": "核心要点"}},
     {{"type": "bulleted_list", "items": ["要点1", "要点2", "要点3", "要点4", "要点5"]}},
     {{"type": "heading_1", "content": "详细总结"}},
@@ -51,7 +55,9 @@ class NewProjectAnalyseAgent(BaseAgent):
     {{"type": "bulleted_list", "items": [
       {{"text": "主要模块1", "children": ["子模块1.1", "子模块1.2"]}},
       {{"text": "主要模块2", "children": ["子模块2.1", "子模块2.2"]}}
-    ]}}
+    ]}},
+    {{"type": "divider"}},
+    {{"type": "paragraph", "content": "任务时间: {current_time}"}}
   ]
 }}
 ```
@@ -66,10 +72,14 @@ class NewProjectAnalyseAgent(BaseAgent):
 - code: 代码块（content 和 language 字段）
 - divider: 分割线（无额外字段）
 - bookmark: 书签链接（url 字段）
+- callout: 标注块（content 和 emoji 字段）
 - to_do: 待办事项（content 和 checked 字段）
 
 **重要:**
 - title 格式必须为: "项目名称-中文标题-{current_date}"
+- 如果是 GitHub 项目，必须获取并显示 star/fork/最后提交时间，使用 callout 块单独展示
+- 如果不是 GitHub 项目，省略 callout 块
+- 任务时间必须放在内容最后
 - 最终必须输出上述 JSON 格式
 - JSON 必须用 ```json 代码块包裹
 - 确保 JSON 格式正确，可以被解析

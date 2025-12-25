@@ -20,6 +20,7 @@ class TaskResponse(BaseModel):
     success: bool
     task_id: str | None = None
     message: str | None = None
+    input: dict | None = None  # 用户提交的内容
 
 
 class HealthCheckResponse(BaseModel):
