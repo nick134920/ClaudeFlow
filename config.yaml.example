@@ -6,8 +6,10 @@ log_level: INFO
 # newprojectanalyse agent 配置
 newprojectanalyse:
   model: claude-sonnet-4-20250514
-  notion_parent_page_id: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
   max_turns: 15
+  notion:
+    token: your-notion-token
+    parent_page_id: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
   mcp_servers:
     firecrawl:
       type: stdio
@@ -15,18 +17,14 @@ newprojectanalyse:
       args: ["-y", "firecrawl-mcp"]
       env:
         FIRECRAWL_API_KEY: your-firecrawl-api-key
-    notion:
-      type: stdio
-      command: npx
-      args: ["-y", "@notionhq/notion-mcp-server"]
-      env:
-        NOTION_TOKEN: your-notion-token
 
 # deepresearch agent 配置
 deepresearch:
   model: claude-sonnet-4-20250514
-  notion_parent_page_id: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
   max_turns: 20
+  notion:
+    token: your-notion-token
+    parent_page_id: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
   tavily:
     search_depth: advanced
     max_results: 10
@@ -38,9 +36,3 @@ deepresearch:
       args: ["-y", "tavily-mcp@latest"]
       env:
         TAVILY_API_KEY: your-tavily-api-key
-    notion:
-      type: stdio
-      command: npx
-      args: ["-y", "@notionhq/notion-mcp-server"]
-      env:
-        NOTION_TOKEN: your-notion-token
