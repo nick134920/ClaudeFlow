@@ -23,3 +23,21 @@ LOG_LEVEL: str = _config.get("log_level", "INFO")
 def get_agent_config(agent_name: str) -> dict:
     """获取指定 agent 的配置"""
     return _config.get(agent_name, {})
+
+
+def get_agent_notion_config(agent_name: str) -> dict:
+    """
+    获取指定 Agent 的 Notion 配置
+
+    Args:
+        agent_name: Agent 名称
+
+    Returns:
+        {"token": str, "parent_page_id": str}
+    """
+    agent_config = get_agent_config(agent_name)
+    notion_config = agent_config.get("notion", {})
+    return {
+        "token": notion_config.get("token", ""),
+        "parent_page_id": notion_config.get("parent_page_id", ""),
+    }
