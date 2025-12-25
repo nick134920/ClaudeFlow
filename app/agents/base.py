@@ -42,6 +42,16 @@ class BaseAgent(ABC):
         """获取用于日志记录的输入数据"""
         return kwargs
 
+    async def process_final_output(self, final_text: str, **kwargs) -> None:
+        """
+        处理 Agent 的最终输出（子类可覆盖）
+
+        Args:
+            final_text: Agent 输出的文本
+            **kwargs: 传递给 run() 的参数
+        """
+        pass
+
     async def run(self, **kwargs) -> None:
         """
         执行 Agent 任务
@@ -65,9 +75,11 @@ class BaseAgent(ABC):
         tool_start_times: Dict[str, float] = {}  # tool_use_id -> start_time
         num_turns = 0
         cost_usd = 0.0
+        messages_collected = []  # 收集所有消息
 
         try:
             async for message in query(prompt=prompt, options=options):
+                messages_collected.append(message)
                 if isinstance(message, AssistantMessage):
                     # 新的 Turn 开始
                     logger.log_turn_start()
@@ -112,6 +124,23 @@ class BaseAgent(ABC):
                 elif isinstance(message, ResultMessage):
                     cost_usd = getattr(message, "total_cost_usd", 0) or 0
                     num_turns = getattr(message, "num_turns", 0)
+
+            # 收集最终文本输出（查找包含 JSON 的输出）
+            final_text = ""
+            for msg in reversed(messages_collected):
+                if isinstance(msg, AssistantMessage):
+                    for block in getattr(msg, "content", []):
+                        if isinstance(block, TextBlock):
+                            text = getattr(block, "text", "")
+                            if text and "```json" in text:
+                                final_text = text
+                                break
+                    if final_text:
+                        break
+
+            # 处理最终输出
+            if final_text:
+                await self.process_final_output(final_text, **kwargs)
 
             logger.finish(success=True, num_turns=num_turns, cost_usd=cost_usd)
 
