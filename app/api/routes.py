@@ -1,8 +1,9 @@
 from fastapi import APIRouter, BackgroundTasks, Query, Request
 from claude_agent_sdk import query, ClaudeAgentOptions, AssistantMessage, TextBlock
 
-from app.api.models import NewProjectAnalyseRequest, TaskResponse, HealthCheckResponse
+from app.api.models import NewProjectAnalyseRequest, TaskResponse, HealthCheckResponse, DeepResearchRequest
 from app.agents.newprojectanalyse.agent import run_newprojectanalyse_agent
+from app.agents.deepresearch.agent import run_deepresearch_agent
 from app.agents.newprojectanalyse.config import MODEL
 from app.config import API_KEY
 from app.core.logging import request_logger
@@ -116,3 +117,44 @@ async def check_agent_health(
             status="unhealthy", extra={"error": error_msg}
         )
         return HealthCheckResponse(healthy=False, error=error_msg)
+
+
+@router.post("/deepresearch", response_model=TaskResponse)
+async def deepresearch(
+    request: Request,
+    body: DeepResearchRequest,
+    background_tasks: BackgroundTasks,
+    api_key: str = Query(..., description="API Key"),
+):
+    """
+    提交深度研究任务
+
+    - 验证 API Key
+    - 验证主题格式
+    - 提交后台任务
+    - 返回任务 ID
+    """
+    client_ip = get_client_ip(request)
+    path = "/deepresearch"
+
+    # 验证 API Key
+    if api_key != API_KEY:
+        request_logger.log(
+            "WARNING", "POST", path, client_ip,
+            status="rejected", extra={"reason": "invalid_api_key"}
+        )
+        return TaskResponse(success=False, message="Invalid API Key")
+
+    # 生成任务 ID
+    task_id = task_registry.generate_id("deepresearch")
+
+    # 记录请求日志
+    request_logger.log(
+        "INFO", "POST", path, client_ip,
+        task_id=task_id, status="accepted", extra={"topic": body.topic}
+    )
+
+    # 添加后台任务
+    background_tasks.add_task(run_deepresearch_agent, body.topic)
+
+    return TaskResponse(success=True, task_id=task_id)
