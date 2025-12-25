@@ -106,15 +106,67 @@ class BlockBuilder:
             for item in items
         ]
 
+    # Notion 支持的代码语言列表
+    SUPPORTED_LANGUAGES = {
+        "abap", "abc", "agda", "arduino", "ascii art", "assembly", "bash", "basic",
+        "bnf", "c", "c#", "c++", "clojure", "coffeescript", "coq", "css", "dart",
+        "dhall", "diff", "docker", "ebnf", "elixir", "elm", "erlang", "f#", "flow",
+        "fortran", "gherkin", "glsl", "go", "graphql", "groovy", "haskell", "hcl",
+        "html", "idris", "java", "javascript", "json", "julia", "kotlin", "latex",
+        "less", "lisp", "livescript", "llvm ir", "lua", "makefile", "markdown",
+        "markup", "matlab", "mathematica", "mermaid", "nix", "notion formula",
+        "objective-c", "ocaml", "pascal", "perl", "php", "plain text", "powershell",
+        "prolog", "protobuf", "purescript", "python", "r", "racket", "reason", "ruby",
+        "rust", "sass", "scala", "scheme", "scss", "shell", "smalltalk", "solidity",
+        "sql", "swift", "toml", "typescript", "vb.net", "verilog", "vhdl",
+        "visual basic", "webassembly", "xml", "yaml", "java/c/c++/c#"
+    }
+
+    # 语言别名映射
+    LANGUAGE_ALIASES = {
+        "http": "plain text",
+        "sh": "shell",
+        "js": "javascript",
+        "ts": "typescript",
+        "py": "python",
+        "rb": "ruby",
+        "yml": "yaml",
+        "dockerfile": "docker",
+        "plaintext": "plain text",
+        "text": "plain text",
+        "txt": "plain text",
+        "objective_c": "objective-c",
+        "objc": "objective-c",
+        "csharp": "c#",
+        "cpp": "c++",
+        "fsharp": "f#",
+        "vbnet": "vb.net",
+    }
+
+    @staticmethod
+    def _normalize_language(language: str) -> str:
+        """将语言名称标准化为 Notion 支持的格式"""
+        lang_lower = language.lower().strip()
+        # 检查别名
+        if lang_lower in BlockBuilder.LANGUAGE_ALIASES:
+            return BlockBuilder.LANGUAGE_ALIASES[lang_lower]
+        # 检查是否直接支持
+        if lang_lower in BlockBuilder.SUPPORTED_LANGUAGES:
+            return lang_lower
+        # 回退到 plain text
+        logger.warning(f"不支持的代码语言 '{language}'，回退到 'plain text'")
+        return "plain text"
+
     @staticmethod
     def code(content: str, language: str = "plain text") -> dict:
         """构建代码块"""
+        normalized_lang = BlockBuilder._normalize_language(language)
         return {
             "object": "block",
             "type": "code",
             "code": {
                 "rich_text": BlockBuilder._rich_text(content),
-                "language": language
+                "language": normalized_lang
             }
         }
 

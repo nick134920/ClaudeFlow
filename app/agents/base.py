@@ -141,24 +141,55 @@ class BaseAgent(ABC):
                     structured_output = getattr(message, "structured_output", None)
 
             # 处理最终输出（优先使用结构化输出）
+            logger.debug(f"[OUTPUT_DEBUG] structured_output is None: {structured_output is None}")
+            logger.debug(f"[OUTPUT_DEBUG] structured_output type: {type(structured_output)}")
+            logger.debug(f"[OUTPUT_DEBUG] structured_output value: {structured_output}")
+
             if structured_output is not None:
+                logger.debug("[OUTPUT_DEBUG] 使用 structured_output 路径")
                 await self.process_structured_output(structured_output, **kwargs)
             else:
+                logger.debug("[OUTPUT_DEBUG] structured_output 为 None，进入回退逻辑")
                 # 回退：收集最终文本输出（查找包含 JSON 的输出）
                 final_text = ""
+                checked_texts = []  # 记录检查过的文本
                 for msg in reversed(messages_collected):
                     if isinstance(msg, AssistantMessage):
                         for block in getattr(msg, "content", []):
                             if isinstance(block, TextBlock):
                                 text = getattr(block, "text", "")
-                                if text and "```json" in text:
-                                    final_text = text
-                                    break
+                                if text:
+                                    # 记录检查的文本片段
+                                    text_preview = text[:200] + "..." if len(text) > 200 else text
+                                    has_json_marker = "```json" in text
+                                    has_raw_json = text.strip().startswith("{")
+                                    checked_texts.append({
+                                        "preview": text_preview,
+                                        "has_json_marker": has_json_marker,
+                                        "has_raw_json": has_raw_json,
+                                        "length": len(text)
+                                    })
+
+                                    if has_json_marker:
+                                        final_text = text
+                                        logger.debug(f"[OUTPUT_DEBUG] 找到包含 ```json 的文本，长度: {len(text)}")
+                                        break
                         if final_text:
                             break
 
+                # 打印所有检查过的文本摘要
+                logger.debug(f"[OUTPUT_DEBUG] 共检查 {len(checked_texts)} 个 TextBlock")
+                for i, info in enumerate(checked_texts):
+                    logger.debug(f"[OUTPUT_DEBUG] TextBlock[{i}]: length={info['length']}, "
+                                 f"has_json_marker={info['has_json_marker']}, "
+                                 f"has_raw_json={info['has_raw_json']}")
+                    logger.debug(f"[OUTPUT_DEBUG] TextBlock[{i}] preview: {info['preview']}")
+
                 if final_text:
+                    logger.debug("[OUTPUT_DEBUG] 找到 final_text，调用 process_final_output")
                     await self.process_final_output(final_text, **kwargs)
+                else:
+                    logger.warning("[OUTPUT_DEBUG] 未找到符合条件的 final_text，跳过 process_final_output")
 
             logger.finish(success=True, num_turns=num_turns, cost_usd=cost_usd)
 

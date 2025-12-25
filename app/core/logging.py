@@ -102,12 +102,21 @@ class TaskLogger:
 
     SEPARATOR = "─" * 40
 
+    # 日志级别映射
+    LEVEL_MAP = {
+        "DEBUG": 10,
+        "INFO": 20,
+        "WARNING": 30,
+        "ERROR": 40,
+    }
+
     def __init__(self, task_id: str, input_data: Dict[str, Any]):
         self.task_id = task_id
         self.input_data = input_data
         self.start_time = datetime.now()
         self.turn_count = 0
         self.tool_call_names: Dict[str, str] = {}  # call_id -> tool_name
+        self._log_level = self.LEVEL_MAP.get(LOG_LEVEL.upper(), 20)
 
         # 创建日志文件
         today = _get_today_str()
@@ -134,10 +143,32 @@ Input: {json.dumps(self.input_data, ensure_ascii=False)}
         """获取当前时间戳 [HH:MM:SS]"""
         return datetime.now().strftime("[%H:%M:%S]")
 
-    def log(self, message: str) -> None:
-        """记录一条日志"""
+    def _should_log(self, level: str) -> bool:
+        """判断是否应该记录该级别的日志"""
+        return self.LEVEL_MAP.get(level.upper(), 20) >= self._log_level
+
+    def _log_with_level(self, level: str, message: str) -> None:
+        """带级别的日志记录"""
+        if not self._should_log(level):
+            return
         with open(self.log_file, "a", encoding="utf-8") as f:
-            f.write(f"{self._get_timestamp()} {message}\n")
+            f.write(f"{self._get_timestamp()} [{level.upper()}] {message}\n")
+
+    def debug(self, message: str) -> None:
+        """记录 DEBUG 级别日志"""
+        self._log_with_level("DEBUG", message)
+
+    def info(self, message: str) -> None:
+        """记录 INFO 级别日志"""
+        self._log_with_level("INFO", message)
+
+    def warning(self, message: str) -> None:
+        """记录 WARNING 级别日志"""
+        self._log_with_level("WARNING", message)
+
+    def log(self, message: str) -> None:
+        """记录一条日志（INFO 级别）"""
+        self.info(message)
 
     def log_user_prompt(self, prompt: str) -> None:
         """记录用户 Prompt"""
