@@ -1,4 +1,6 @@
 """Notion API 服务封装"""
+import json
+import re
 import time
 import logging
 
@@ -17,7 +19,7 @@ class BlockBuilder:
     """Notion 块类型构建辅助类"""
 
     @staticmethod
-    def _rich_text(content: str) -> list:
+    def _rich_text(content: str, link: str = None) -> list:
         """构建 rich_text 数组"""
         # Notion API 限制单个 rich_text 内容最大 2000 字符
         if len(content) > 2000:
@@ -25,7 +27,19 @@ class BlockBuilder:
                 f"内容长度 {len(content)} 超过 Notion API 限制 2000 字符，将被截断"
             )
             content = content[:2000]
-        return [{"type": "text", "text": {"content": content}}]
+        text_obj = {"content": content}
+        if link:
+            text_obj["link"] = {"url": link}
+        return [{"type": "text", "text": text_obj}]
+
+    @staticmethod
+    def bookmark(url: str) -> dict:
+        """构建书签块"""
+        return {
+            "object": "block",
+            "type": "bookmark",
+            "bookmark": {"url": url}
+        }
 
     @staticmethod
     def paragraph(text: str) -> dict:
@@ -49,16 +63,36 @@ class BlockBuilder:
         }
 
     @staticmethod
-    def bulleted_list(items: list[str]) -> list[dict]:
-        """构建无序列表块列表"""
-        return [
-            {
-                "object": "block",
-                "type": "bulleted_list_item",
-                "bulleted_list_item": {"rich_text": BlockBuilder._rich_text(item)}
-            }
-            for item in items
-        ]
+    def bulleted_list_item(text: str, children: list[dict] = None) -> dict:
+        """构建单个无序列表项"""
+        block = {
+            "object": "block",
+            "type": "bulleted_list_item",
+            "bulleted_list_item": {"rich_text": BlockBuilder._rich_text(text)}
+        }
+        if children:
+            block["bulleted_list_item"]["children"] = children
+        return block
+
+    @staticmethod
+    def bulleted_list(items: list) -> list[dict]:
+        """
+        构建无序列表块列表，支持嵌套结构
+
+        items 格式:
+        - 简单字符串: "item text"
+        - 带子项的字典: {"text": "parent", "children": ["child1", "child2"]}
+        """
+        result = []
+        for item in items:
+            if isinstance(item, str):
+                result.append(BlockBuilder.bulleted_list_item(item))
+            elif isinstance(item, dict):
+                text = item.get("text", "")
+                children_items = item.get("children", [])
+                children_blocks = BlockBuilder.bulleted_list(children_items) if children_items else None
+                result.append(BlockBuilder.bulleted_list_item(text, children_blocks))
+        return result
 
     @staticmethod
     def numbered_list(items: list[str]) -> list[dict]:
@@ -204,6 +238,39 @@ class NotionService:
         logger.info("块追加成功")
 
 
+def parse_agent_output(output: str) -> dict:
+    """
+    从 Agent 输出中提取 JSON
+
+    Args:
+        output: Agent 的文本输出
+
+    Returns:
+        解析后的字典 {"title": str, "blocks": list}
+    """
+    # 尝试提取 markdown 代码块中的 JSON
+    code_block_pattern = r"```(?:json)?\s*\n?([\s\S]*?)\n?```"
+    matches = re.findall(code_block_pattern, output)
+
+    for match in matches:
+        try:
+            data = json.loads(match.strip())
+            if "title" in data and "blocks" in data:
+                return data
+        except json.JSONDecodeError:
+            continue
+
+    # 尝试直接解析整个输出
+    try:
+        data = json.loads(output.strip())
+        if "title" in data and "blocks" in data:
+            return data
+    except json.JSONDecodeError:
+        pass
+
+    raise ValueError("无法从 Agent 输出中解析有效的 JSON 结构")
+
+
 def blocks_to_notion_format(blocks: list[dict]) -> list[dict]:
     """
     将简化 schema 转换为 Notion API 格式
@@ -239,6 +306,9 @@ def blocks_to_notion_format(blocks: list[dict]) -> list[dict]:
 
         elif block_type == "divider":
             result.append(BlockBuilder.divider())
+
+        elif block_type == "bookmark":
+            result.append(BlockBuilder.bookmark(block.get("url", "")))
 
         elif block_type == "to_do":
             result.append(BlockBuilder.to_do(

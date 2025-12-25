@@ -23,22 +23,23 @@ class NewProjectAnalyseAgent(BaseAgent):
     MODULE_NAME = "newprojectanalyse"
 
     def get_prompt(self, url: str) -> str:
+        current_date = datetime.now().strftime("%Y%m%d")
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         return f"""
 请完成以下任务：
 
 1. 使用 mcp__firecrawl__firecrawl_scrape 工具抓取这个 URL 的内容：{url}
 
-2. 为抓取的内容生成一个简洁的中文标题（10字以内）
+2. 识别项目名称，并生成一个简洁的中文标题（10字以内）
 
 3. 将内容总结并输出为以下 JSON 格式（必须用 ```json 包裹）：
 
 ```json
 {{
-  "title": "生成的中文标题",
+  "title": "项目名称-中文标题-{current_date}",
   "blocks": [
     {{"type": "paragraph", "content": "任务时间: {current_time}"}},
-    {{"type": "paragraph", "content": "原始链接: {url}"}},
+    {{"type": "bookmark", "url": "{url}"}},
     {{"type": "divider"}},
     {{"type": "heading_1", "content": "项目概述"}},
     {{"type": "paragraph", "content": "项目简介...（如果是 GitHub 项目，包含 star/fork/最后更新信息）"}},
@@ -47,7 +48,10 @@ class NewProjectAnalyseAgent(BaseAgent):
     {{"type": "heading_1", "content": "详细总结"}},
     {{"type": "paragraph", "content": "200-300字的详细总结..."}},
     {{"type": "heading_1", "content": "核心逻辑思维导图"}},
-    {{"type": "bulleted_list", "items": ["主要模块1", "  - 子模块1.1", "  - 子模块1.2", "主要模块2", "  - 子模块2.1"]}}
+    {{"type": "bulleted_list", "items": [
+      {{"text": "主要模块1", "children": ["子模块1.1", "子模块1.2"]}},
+      {{"text": "主要模块2", "children": ["子模块2.1", "子模块2.2"]}}
+    ]}}
   ]
 }}
 ```
@@ -55,13 +59,17 @@ class NewProjectAnalyseAgent(BaseAgent):
 **支持的块类型:**
 - heading_1, heading_2, heading_3: 标题（content 字段）
 - paragraph: 段落（content 字段）
-- bulleted_list: 无序列表（items 字段，字符串数组）
+- bulleted_list: 无序列表，支持两种格式:
+  - 简单列表: items 为字符串数组 ["item1", "item2"]
+  - 嵌套列表: items 为对象数组 [{{"text": "父项", "children": ["子项1", "子项2"]}}]
 - numbered_list: 有序列表（items 字段，字符串数组）
 - code: 代码块（content 和 language 字段）
 - divider: 分割线（无额外字段）
+- bookmark: 书签链接（url 字段）
 - to_do: 待办事项（content 和 checked 字段）
 
 **重要:**
+- title 格式必须为: "项目名称-中文标题-{current_date}"
 - 最终必须输出上述 JSON 格式
 - JSON 必须用 ```json 代码块包裹
 - 确保 JSON 格式正确，可以被解析
