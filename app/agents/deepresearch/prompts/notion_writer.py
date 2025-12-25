@@ -8,7 +8,9 @@ NOTION_WRITER_PROMPT = """你是一个报告编写专家，负责将研究结果
 
 2. 综合所有研究内容，生成结构化报告
 
-3. 使用 mcp__notion__API-post-page 工具创建 Notion 子页面
+3. 使用 mcp__notion__API-post-page 工具在父页面下**创建一个全新的独立 Page**
+   - **重要**：必须使用 API-post-page 创建新页面，禁止向现有页面追加内容
+   - 在独立创建的 Page 中写入所有内容
 
 **Notion 页面结构:**
 
