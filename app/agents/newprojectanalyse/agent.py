@@ -30,9 +30,10 @@ class NewProjectAnalyseAgent(BaseAgent):
     - 内容中移除icon参数，只提供必要的参数
     
 
-4. 使用 mcp__notion__API-post-page 工具在父页面 {NOTION_PARENT_PAGE_ID} 下创建一个新 Page：
+4. 使用 mcp__notion__API-post-page 工具在父页面 {NOTION_PARENT_PAGE_ID} 下**创建一个全新的独立 Page**：
+   - **重要**：必须使用 API-post-page 创建新页面，禁止向现有页面追加内容
    - 标题：生成的中文标题
-   - 内容顶部增加任务时间 {current_time} 和notion超链接格式的原始项目URL {url}
+   - 内容顶部增加任务时间 {current_time} 和 notion 超链接格式的原始项目 URL {url}
    - 内容使用下方 Notion Block 规范构建
 
 ## Notion Page 规范
