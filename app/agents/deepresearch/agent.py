@@ -16,6 +16,7 @@ from app.agents.deepresearch.schema import NOTION_OUTPUT_SCHEMA
 from app.services.notion import (
     NotionService,
     blocks_to_notion_format,
+    parse_agent_output,
 )
 
 
@@ -59,12 +60,24 @@ class DeepResearchAgent(BaseAgent):
         if not structured_output:
             return
 
-        notion_blocks = blocks_to_notion_format(structured_output["blocks"])
+        self._write_to_notion(structured_output)
+
+    async def process_final_output(self, final_text: str, **kwargs) -> None:
+        """处理文本输出（回退方案），解析 JSON 后写入 Notion"""
+        if not final_text:
+            return
+
+        parsed = parse_agent_output(final_text)
+        self._write_to_notion(parsed)
+
+    def _write_to_notion(self, data: dict) -> None:
+        """写入 Notion 页面"""
+        notion_blocks = blocks_to_notion_format(data["blocks"])
 
         notion_service = NotionService(NOTION_TOKEN)
         notion_service.create_page(
             parent_page_id=NOTION_PARENT_PAGE_ID,
-            title=structured_output["title"],
+            title=data["title"],
             blocks=notion_blocks,
         )
 
