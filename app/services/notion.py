@@ -209,6 +209,7 @@ class NotionService:
 
     MAX_RETRIES = 3
     RETRY_DELAYS = [1, 2, 4]  # 指数退避（秒）
+    MAX_BLOCKS_PER_REQUEST = 100  # Notion API 限制
 
     def __init__(self, token: str):
         """初始化 Notion Client"""
@@ -261,7 +262,11 @@ class NotionService:
         Returns:
             新页面 ID
         """
-        logger.info(f"创建 Notion 页面: {title}")
+        logger.info(f"创建 Notion 页面: {title}，共 {len(blocks)} 个块")
+
+        # 分批处理：首批用于创建页面，剩余批次追加
+        first_batch = blocks[:self.MAX_BLOCKS_PER_REQUEST]
+        remaining_blocks = blocks[self.MAX_BLOCKS_PER_REQUEST:]
 
         def _create():
             return self.client.pages.create(
@@ -269,13 +274,21 @@ class NotionService:
                 properties={
                     "title": [{"text": {"content": title}}]
                 },
-                children=blocks
+                children=first_batch
             )
 
         result = self._retry_operation(_create)
         page_id = result["id"]
         page_url = result.get("url", "")
         logger.info(f"页面创建成功: {page_id}, URL: {page_url}")
+
+        # 追加剩余块
+        if remaining_blocks:
+            logger.info(f"需追加 {len(remaining_blocks)} 个块")
+            for i in range(0, len(remaining_blocks), self.MAX_BLOCKS_PER_REQUEST):
+                batch = remaining_blocks[i:i + self.MAX_BLOCKS_PER_REQUEST]
+                self.append_blocks(page_id, batch)
+
         return page_id
 
     def append_blocks(
