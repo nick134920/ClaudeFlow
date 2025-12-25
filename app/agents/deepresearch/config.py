@@ -1,4 +1,3 @@
-from pathlib import Path
 from app.config import get_agent_config
 
 _config = get_agent_config("deepresearch")
@@ -16,7 +15,3 @@ INCLUDE_IMAGES: bool = TAVILY_CONFIG.get("include_images", False)
 
 # MCP 服务器配置
 MCP_SERVERS: dict = _config.get("mcp_servers", {})
-
-# 文件路径
-BASE_DIR = Path(__file__).resolve().parent
-RESEARCH_NOTES_DIR = BASE_DIR / "files" / "research_notes"
