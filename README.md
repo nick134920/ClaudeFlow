@@ -20,6 +20,14 @@
 - **结构化输出**：使用 JSON Schema 强制格式化，自动创建 Notion 页面
 - **Tavily 搜索**：支持配置搜索深度和结果数量
 
+### QuickNote - 快速笔记
+
+轻量级笔记 API，将内容追加到指定 Notion 页面。
+
+- **即时写入**：同步执行，立即返回结果
+- **简单易用**：单一接口，无需复杂配置
+- **快捷指令友好**：适合 iOS/Mac 快捷指令随时记录灵感
+
 ## 技术架构
 
 ```
@@ -98,6 +106,12 @@ newprojectanalyse:
       env:
         FIRECRAWL_API_KEY: your-firecrawl-key
 
+# QuickNote 配置
+quicknote:
+  notion:
+    token: your-notion-token
+    page_id: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx  # 写入笔记的目标页面
+
 # DeepResearch 配置
 deepresearch:
   model: claude-sonnet-4-20250514
@@ -154,6 +168,21 @@ curl -X POST "http://localhost:8000/deepresearch?api_key=your-api-key" \
 **响应**
 ```json
 {"success": true, "task_id": "deepresearch_251225_11_30_00"}
+```
+
+### POST /quicknote
+
+快速笔记 - 追加内容到指定 Notion 页面。
+
+```bash
+curl -X POST "http://localhost:8000/quicknote?api_key=your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{"content":"这是一条快速笔记"}'
+```
+
+**响应**
+```json
+{"success": true, "message": "笔记已追加", "input": {"content": "这是一条快速笔记"}}
 ```
 
 ### GET /check-agent-health
@@ -237,6 +266,35 @@ curl "http://localhost:8000/check-agent-health?api_key=your-api-key"
 ```
 
 3. 可添加到主屏幕或设置 Siri 语音触发
+
+#### 方式三：QuickNote - 快速笔记
+
+1. 创建新快捷指令
+2. 添加以下操作：
+
+```
+[输入] 请求输入 → 文本
+    提示: 输入笔记内容
+    ↓
+[变量] 设置变量「content」为「提供的输入」
+    ↓
+[网络] 获取 URL 的内容
+    URL: http://your-server:8000/quicknote?api_key=YOUR_API_KEY
+    方法: POST
+    请求体: JSON
+    {
+      "content": [content 变量]
+    }
+    ↓
+[脚本] 获取词典值「success」
+    ↓
+[脚本] 如果「success」等于 true
+    → 显示通知「笔记已保存」
+    否则
+    → 显示通知「保存失败」
+```
+
+3. 可设置 Siri 语音触发，随时记录灵感
 
 ### 快捷指令配置要点
 

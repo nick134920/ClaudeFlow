@@ -18,6 +18,12 @@ newprojectanalyse:
       env:
         FIRECRAWL_API_KEY: your-firecrawl-api-key
 
+# quicknote 配置 (快速笔记追加到指定页面)
+quicknote:
+  notion:
+    token: your-notion-token
+    page_id: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx  # 写入笔记的目标页面 ID
+
 # deepresearch agent 配置
 deepresearch:
   model: claude-sonnet-4-20250514

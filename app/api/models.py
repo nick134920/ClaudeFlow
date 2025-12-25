@@ -43,3 +43,18 @@ class DeepResearchRequest(BaseModel):
         if len(v) > 500:
             raise ValueError("研究主题不能超过 500 个字符")
         return v
+
+
+class QuickNoteRequest(BaseModel):
+    """快速笔记请求模型"""
+    content: str
+
+    @field_validator("content")
+    @classmethod
+    def validate_content(cls, v: str) -> str:
+        v = v.strip()
+        if len(v) < 1:
+            raise ValueError("笔记内容不能为空")
+        if len(v) > 2000:
+            raise ValueError("笔记内容不能超过 2000 个字符")
+        return v

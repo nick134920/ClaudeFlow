@@ -1,13 +1,14 @@
 from fastapi import APIRouter, BackgroundTasks, Query, Request
 from claude_agent_sdk import query, ClaudeAgentOptions, AssistantMessage, TextBlock
 
-from app.api.models import NewProjectAnalyseRequest, TaskResponse, HealthCheckResponse, DeepResearchRequest
+from app.api.models import NewProjectAnalyseRequest, TaskResponse, HealthCheckResponse, DeepResearchRequest, QuickNoteRequest
 from app.agents.newprojectanalyse.agent import run_newprojectanalyse_agent
 from app.agents.deepresearch.agent import run_deepresearch_agent
 from app.agents.newprojectanalyse.config import MODEL
-from app.config import API_KEY
+from app.config import API_KEY, get_agent_config
 from app.core.logging import request_logger
 from app.core.task_registry import task_registry
+from app.services.notion import NotionService, BlockBuilder
 
 router = APIRouter()
 
@@ -158,3 +159,65 @@ async def deepresearch(
     background_tasks.add_task(run_deepresearch_agent, body.topic)
 
     return TaskResponse(success=True, task_id=task_id, input={"topic": body.topic})
+
+
+@router.post("/quicknote", response_model=TaskResponse)
+async def quicknote(
+    request: Request,
+    body: QuickNoteRequest,
+    api_key: str = Query(..., description="API Key"),
+):
+    """
+    快速笔记 - 追加 bulleted_list 到指定 Notion 页面
+
+    - 验证 API Key
+    - 直接将内容追加到指定页面的 bulleted_list
+    - 同步执行，立即返回结果
+    """
+    client_ip = get_client_ip(request)
+    path = "/quicknote"
+
+    # 验证 API Key
+    if api_key != API_KEY:
+        request_logger.log(
+            "WARNING", "POST", path, client_ip,
+            status="rejected", extra={"reason": "invalid_api_key"}
+        )
+        return TaskResponse(success=False, message="Invalid API Key")
+
+    # 获取 quicknote 配置
+    quicknote_config = get_agent_config("quicknote")
+    notion_config = quicknote_config.get("notion", {})
+    token = notion_config.get("token", "")
+    page_id = notion_config.get("page_id", "")
+
+    if not token or not page_id:
+        request_logger.log(
+            "ERROR", "POST", path, client_ip,
+            status="config_error", extra={"reason": "missing_notion_config"}
+        )
+        return TaskResponse(success=False, message="Notion 配置缺失")
+
+    try:
+        # 创建 Notion 服务并追加内容
+        notion = NotionService(token)
+        blocks = [BlockBuilder.bulleted_list_item(body.content)]
+        notion.append_blocks(page_id, blocks)
+
+        request_logger.log(
+            "INFO", "POST", path, client_ip,
+            status="success", extra={"content_length": len(body.content)}
+        )
+
+        return TaskResponse(
+            success=True,
+            message="笔记已追加",
+            input={"content": body.content}
+        )
+
+    except Exception as e:
+        request_logger.log(
+            "ERROR", "POST", path, client_ip,
+            status="failed", extra={"error": str(e)}
+        )
+        return TaskResponse(success=False, message=f"写入失败: {str(e)}")
