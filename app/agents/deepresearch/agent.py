@@ -3,6 +3,7 @@ from claude_agent_sdk import AgentDefinition, ClaudeAgentOptions
 from app.agents.base import BaseAgent
 from app.agents.deepresearch.config import (
     MODEL,
+    NOTION_TOKEN,
     NOTION_PARENT_PAGE_ID,
     MAX_TURNS,
     MCP_SERVERS,
@@ -11,7 +12,12 @@ from app.agents.deepresearch.config import (
 )
 from app.agents.deepresearch.prompts.lead_agent import get_lead_agent_prompt
 from app.agents.deepresearch.prompts.researcher import get_researcher_prompt
-from app.agents.deepresearch.prompts.notion_writer import get_notion_writer_prompt
+from app.services.notion import (
+    NotionService,
+    NotionWriteError,
+    parse_agent_output,
+    blocks_to_notion_format,
+)
 
 
 class DeepResearchAgent(BaseAgent):
@@ -34,17 +40,6 @@ class DeepResearchAgent(BaseAgent):
                 tools=["mcp__tavily__tavily-search"],
                 model="haiku",
             ),
-            "notion-writer": AgentDefinition(
-                description="综合研究结果，创建 Notion 子页面",
-                prompt=get_notion_writer_prompt(
-                    notion_parent_page_id=NOTION_PARENT_PAGE_ID,
-                ),
-                tools=[
-                    "mcp__notion__API-post-page",
-                    "mcp__notion__API-patch-block-children",
-                ],
-                model="sonnet",
-            ),
         }
 
         return ClaudeAgentOptions(
@@ -58,6 +53,21 @@ class DeepResearchAgent(BaseAgent):
 
     def get_input_data(self, topic: str) -> dict:
         return {"topic": topic}
+
+    async def process_final_output(self, final_text: str, **kwargs) -> None:
+        """处理最终输出，写入 Notion"""
+        if not final_text:
+            return
+
+        parsed = parse_agent_output(final_text)
+        notion_blocks = blocks_to_notion_format(parsed["blocks"])
+
+        notion_service = NotionService(NOTION_TOKEN)
+        notion_service.create_page(
+            parent_page_id=NOTION_PARENT_PAGE_ID,
+            title=parsed["title"],
+            blocks=notion_blocks,
+        )
 
 
 async def run_deepresearch_agent(topic: str) -> None:
