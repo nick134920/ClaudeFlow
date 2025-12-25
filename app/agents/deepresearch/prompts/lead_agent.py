@@ -20,14 +20,16 @@ LEAD_AGENT_PROMPT = """你是一个研究协调者，负责协调多 Agent 研�
 - description: 简短描述子课题（3-5 个词）
 - prompt: 详细说明要研究的具体内容
 
-**第三步：等待研究完成**
-等待所有 researcher 完成工作。
+**第三步：收集研究结果**
+等待所有 researcher 完成，收集每个 researcher 返回的研究结果。
 
 **第四步：派发 NotionWriter**
-使用 Task 工具派发 notion-writer subagent：
+使用 Task 工具派发 notion-writer subagent，将所有研究结果传递给它：
 - subagent_type: "notion-writer"
 - description: "综合研究结果创建 Notion 页面"
-- prompt: "读取 files/research_notes/ 目录下的所有研究笔记，综合后在 Notion 创建子页面。研究主题: {topic}"
+- prompt: 包含以下内容:
+  - 研究主题: {topic}
+  - 所有 researcher 返回的研究结果（完整内容）
 
 **第五步：确认完成**
 告知用户研究完成，Notion 页面已创建。
@@ -35,7 +37,7 @@ LEAD_AGENT_PROMPT = """你是一个研究协调者，负责协调多 Agent 研�
 **重要:**
 - 并行派发 researcher，不是串行
 - 每个 researcher 负责不同的子课题
-- 等所有 researcher 完成后才派发 notion-writer
+- 必须将 researcher 的完整研究结果传递给 notion-writer
 """
 
 

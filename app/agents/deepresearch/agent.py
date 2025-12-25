@@ -1,6 +1,4 @@
-from datetime import datetime
-
-from claude_agent_sdk import ClaudeAgentOptions
+from claude_agent_sdk import AgentDefinition, ClaudeAgentOptions
 
 from app.agents.base import BaseAgent
 from app.agents.deepresearch.config import (
@@ -10,7 +8,6 @@ from app.agents.deepresearch.config import (
     MCP_SERVERS,
     SEARCH_DEPTH,
     MAX_RESULTS,
-    RESEARCH_NOTES_DIR,
 )
 from app.agents.deepresearch.prompts.lead_agent import get_lead_agent_prompt
 from app.agents.deepresearch.prompts.researcher import get_researcher_prompt
@@ -22,41 +19,32 @@ class DeepResearchAgent(BaseAgent):
 
     MODULE_NAME = "deepresearch"
 
-    def __init__(self):
-        super().__init__()
-        # 确保研究笔记目录存在
-        RESEARCH_NOTES_DIR.mkdir(parents=True, exist_ok=True)
-
     def get_prompt(self, topic: str) -> str:
         return get_lead_agent_prompt(topic)
 
     def get_options(self) -> ClaudeAgentOptions:
-        # 构建 subagent 定义
+        # 构建 subagent 定义（使用 AgentDefinition 数据类）
         agents = {
-            "researcher": {
-                "description": "使用 Tavily 搜索指定子课题，将结果写入 research_notes/",
-                "prompt": get_researcher_prompt(
+            "researcher": AgentDefinition(
+                description="使用 Tavily 搜索指定子课题，返回研究结果",
+                prompt=get_researcher_prompt(
                     search_depth=SEARCH_DEPTH,
                     max_results=MAX_RESULTS,
-                    research_notes_dir=str(RESEARCH_NOTES_DIR),
                 ),
-                "tools": ["mcp__tavily__tavily-search", "Write"],
-                "model": "haiku",
-            },
-            "notion-writer": {
-                "description": "读取研究笔记，综合后创建 Notion 子页面",
-                "prompt": get_notion_writer_prompt(
+                tools=["mcp__tavily__tavily-search"],
+                model="haiku",
+            ),
+            "notion-writer": AgentDefinition(
+                description="综合研究结果，创建 Notion 子页面",
+                prompt=get_notion_writer_prompt(
                     notion_parent_page_id=NOTION_PARENT_PAGE_ID,
-                    research_notes_dir=str(RESEARCH_NOTES_DIR),
                 ),
-                "tools": [
-                    "Read",
-                    "Glob",
+                tools=[
                     "mcp__notion__API-post-page",
                     "mcp__notion__API-patch-block-children",
                 ],
-                "model": "sonnet",
-            },
+                model="sonnet",
+            ),
         }
 
         return ClaudeAgentOptions(
