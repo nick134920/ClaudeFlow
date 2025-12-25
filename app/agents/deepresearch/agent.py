@@ -3,6 +3,7 @@ from claude_agent_sdk import AgentDefinition, ClaudeAgentOptions
 from app.agents.base import BaseAgent
 from app.agents.deepresearch.config import (
     MODEL,
+    NOTION_TOKEN,
     NOTION_PARENT_PAGE_ID,
     MAX_TURNS,
     MCP_SERVERS,
@@ -11,7 +12,6 @@ from app.agents.deepresearch.config import (
 )
 from app.agents.deepresearch.prompts.lead_agent import get_lead_agent_prompt
 from app.agents.deepresearch.prompts.researcher import get_researcher_prompt
-from app.agents.deepresearch.prompts.notion_writer import get_notion_writer_prompt
 
 
 class DeepResearchAgent(BaseAgent):
@@ -33,17 +33,6 @@ class DeepResearchAgent(BaseAgent):
                 ),
                 tools=["mcp__tavily__tavily-search"],
                 model="haiku",
-            ),
-            "notion-writer": AgentDefinition(
-                description="综合研究结果，创建 Notion 子页面",
-                prompt=get_notion_writer_prompt(
-                    notion_parent_page_id=NOTION_PARENT_PAGE_ID,
-                ),
-                tools=[
-                    "mcp__notion__API-post-page",
-                    "mcp__notion__API-patch-block-children",
-                ],
-                model="sonnet",
             ),
         }
 
