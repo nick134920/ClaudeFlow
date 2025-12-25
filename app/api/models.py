@@ -27,3 +27,18 @@ class HealthCheckResponse(BaseModel):
     healthy: bool
     response: str | None = None
     error: str | None = None
+
+
+class DeepResearchRequest(BaseModel):
+    """深度研究请求模型"""
+    topic: str
+
+    @field_validator("topic")
+    @classmethod
+    def validate_topic(cls, v: str) -> str:
+        v = v.strip()
+        if len(v) < 2:
+            raise ValueError("研究主题至少需要 2 个字符")
+        if len(v) > 500:
+            raise ValueError("研究主题不能超过 500 个字符")
+        return v
