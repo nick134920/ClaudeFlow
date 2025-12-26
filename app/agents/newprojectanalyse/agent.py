@@ -18,6 +18,7 @@ from app.agents.newprojectanalyse.handlers import (
     get_web_agent_definition,
 )
 from app.agents.newprojectanalyse.prompts import get_dispatcher_prompt
+from app.agents.newprojectanalyse.schema import NOTION_OUTPUT_SCHEMA
 from app.services.notion import (
     NotionService,
     parse_agent_output,
@@ -113,23 +114,35 @@ class NewProjectAnalyseAgent(BaseAgent):
             mcp_servers=MCP_SERVERS,
             agents=agents,
             allowed_tools=["Task"],
+            output_format=NOTION_OUTPUT_SCHEMA,
         )
 
     def get_input_data(self, url: str) -> dict:
         return {"url": url}
 
+    async def process_structured_output(self, structured_output: dict, **kwargs) -> None:
+        """处理结构化输出，写入 Notion"""
+        if not structured_output:
+            return
+
+        self._write_to_notion(structured_output)
+
     async def process_final_output(self, final_text: str, **kwargs) -> None:
-        """聚合 subagent 结果，写入 Notion"""
+        """处理文本输出（回退方案），解析 JSON 后写入 Notion"""
         if not final_text:
             return
 
         parsed = parse_agent_output(final_text)
-        notion_blocks = blocks_to_notion_format(parsed["blocks"])
+        self._write_to_notion(parsed)
+
+    def _write_to_notion(self, data: dict) -> None:
+        """写入 Notion 页面"""
+        notion_blocks = blocks_to_notion_format(data["blocks"])
 
         notion_service = NotionService(NOTION_TOKEN)
         notion_service.create_page(
             parent_page_id=NOTION_PARENT_PAGE_ID,
-            title=parsed["title"],
+            title=data["title"],
             blocks=notion_blocks,
         )
 
