@@ -248,6 +248,125 @@ class NewProjectAnalyseAgent(BaseAgent):
             blocks=notion_blocks,
         )
 
+    async def run(self, **kwargs) -> None:
+        """
+        执行 Agent 任务（重写以支持 GitHub 仓库预处理）
+
+        Args:
+            **kwargs: 必须包含 url 参数
+        """
+        from app.core.logging import TaskLogger
+        from app.core.task_registry import task_registry
+        from claude_agent_sdk import (
+            query,
+            AssistantMessage,
+            ResultMessage,
+            ToolUseBlock,
+            ToolResultBlock,
+            UserMessage,
+            TextBlock,
+            ThinkingBlock,
+        )
+        import time
+
+        url = kwargs.get("url")
+        if not url:
+            raise ValueError("url 参数是必需的")
+
+        # 生成任务 ID
+        task_id = task_registry.generate_id(self.MODULE_NAME)
+
+        # 创建任务日志记录器
+        input_data = self.get_input_data(**kwargs)
+        logger = TaskLogger(task_id, input_data)
+
+        # 预处理：判断是否为 GitHub 仓库
+        github_content = None
+        if is_github_repo_url(url):
+            logger.info(f"检测到 GitHub 仓库 URL，使用 gitingest 获取内容...")
+            try:
+                github_content = await fetch_github_repo_content(url)
+                logger.info(f"gitingest 获取成功")
+            except Exception as e:
+                logger.warning(f"gitingest 获取失败，回退到 firecrawl: {e}")
+                github_content = None
+
+        prompt = self.get_prompt(url, github_content)
+        options = self.get_options()
+
+        # 记录用户 Prompt
+        logger.log_user_prompt(prompt)
+
+        tool_start_times = {}
+        num_turns = 0
+        cost_usd = 0.0
+        structured_output = None
+        messages_collected = []
+
+        try:
+            async for message in query(prompt=prompt, options=options):
+                messages_collected.append(message)
+                if isinstance(message, AssistantMessage):
+                    logger.log_turn_start()
+                    blocks = getattr(message, "content", [])
+                    for block in blocks:
+                        if isinstance(block, ThinkingBlock):
+                            thinking_text = getattr(block, "thinking", "")
+                            if thinking_text:
+                                logger.log_thinking(thinking_text)
+                        elif isinstance(block, TextBlock):
+                            text = getattr(block, "text", "")
+                            if text:
+                                logger.log_text(text)
+                        elif isinstance(block, ToolUseBlock):
+                            tool_id = getattr(block, "id", "")
+                            tool_start_times[tool_id] = time.time()
+                            tool_name = getattr(block, "name", "unknown")
+                            tool_input = getattr(block, "input", {})
+                            logger.log_tool_call(tool_name, tool_id, tool_input)
+
+                elif isinstance(message, UserMessage):
+                    msg_content = getattr(message, "content", None)
+                    if isinstance(msg_content, list):
+                        for block in msg_content:
+                            if isinstance(block, ToolResultBlock):
+                                tool_id = getattr(block, "tool_use_id", "")
+                                start_time = tool_start_times.get(tool_id, 0)
+                                duration = time.time() - start_time if start_time else 0
+                                is_error = getattr(block, "is_error", False)
+                                content = getattr(block, "content", "")
+                                logger.log_tool_result(tool_id, content, is_error, duration)
+
+                elif isinstance(message, ResultMessage):
+                    cost_usd = getattr(message, "total_cost_usd", 0) or 0
+                    num_turns = getattr(message, "num_turns", 0)
+                    structured_output = getattr(message, "structured_output", None)
+
+            # 处理最终输出
+            if structured_output is not None:
+                await self.process_structured_output(structured_output, **kwargs)
+            else:
+                final_text = ""
+                for msg in reversed(messages_collected):
+                    if isinstance(msg, AssistantMessage):
+                        for block in getattr(msg, "content", []):
+                            if isinstance(block, TextBlock):
+                                text = getattr(block, "text", "")
+                                if text and "```json" in text:
+                                    final_text = text
+                                    break
+                        if final_text:
+                            break
+
+                if final_text:
+                    await self.process_final_output(final_text, **kwargs)
+
+            logger.finish(success=True, num_turns=num_turns, cost_usd=cost_usd)
+
+        except Exception as e:
+            logger.log_error(e)
+            logger.finish(success=False, error=str(e), num_turns=num_turns, cost_usd=cost_usd)
+
 
 async def run_newprojectanalyse_agent(url: str) -> None:
     """执行 newprojectanalyse Agent"""
