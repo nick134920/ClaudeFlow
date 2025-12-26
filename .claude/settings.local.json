@@ -12,7 +12,17 @@
       "Bash(source .venv/bin/activate)",
       "Bash(python3:*)",
       "Bash(cp:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(git checkout:*)",
+      "mcp__context7__get-library-docs",
+      "WebFetch(domain:ai-sdk.dev)",
+      "WebFetch(domain:sdk.vercel.ai)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:api.github.com)",
+      "Bash(grep:*)",
+      "mcp__context7__resolve-library-id",
+      "Bash(git -C /Users/nick/Syncthing/Develop/AI/ClaudeFlow rev-parse HEAD)"
     ]
   }
 }
