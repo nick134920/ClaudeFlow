@@ -205,6 +205,23 @@ class NewProjectAnalyseAgent(BaseAgent):
 - 确保 JSON 格式正确，可以被解析
 """
 
+    def get_prompt(self, url: str, github_content: tuple[str, str, str] | None = None) -> str:
+        """
+        获取 Agent 提示词
+
+        Args:
+            url: 目标 URL
+            github_content: GitHub 仓库内容 (summary, tree, content)，仅当 URL 为 GitHub 仓库时传入
+
+        Returns:
+            str: 生成的 Prompt
+        """
+        if github_content is not None:
+            summary, tree, content = github_content
+            return self.get_prompt_for_github(url, summary, tree, content)
+        else:
+            return self.get_prompt_for_web(url)
+
     def get_options(self) -> ClaudeAgentOptions:
         return ClaudeAgentOptions(
             model=MODEL,
