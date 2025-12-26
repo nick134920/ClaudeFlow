@@ -57,7 +57,8 @@ class NewProjectAnalyseAgent(BaseAgent):
 
     MODULE_NAME = "newprojectanalyse"
 
-    def get_prompt(self, url: str) -> str:
+    def get_prompt_for_web(self, url: str) -> str:
+        """获取非 GitHub URL 的 Prompt（使用 firecrawl 抓取）"""
         current_date = datetime.now().strftime("%Y%m%d")
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         return f"""
