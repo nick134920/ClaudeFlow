@@ -23,7 +23,21 @@ GITHUB_EXCLUDE_PATTERNS = [
     "node_modules/*", "vendor/*", ".venv/*", "venv/*",
     "dist/*", "build/*", ".git/*",
     "*.lock", "*.min.js", "*.min.css",
-    "*.log", "*.pyc", "__pycache__/*"
+    "*.log", "*.pyc", "__pycache__/*",
+    # lock 文件（非 .lock 后缀）
+    "pnpm-lock.yaml", "package-lock.json", "bun.lockb",
+]
+
+# Prompt 调研所需的文件类型（用于快速分析项目结构和用途）
+GITHUB_INCLUDE_PATTERNS = [
+    # 文档文件（仅根目录和 docs 目录）
+    "README*", "readme*", "CHANGELOG*", "LICENSE*", "CONTRIBUTING*",
+    "*.md", "docs/*.md", "docs/**/*.md",
+    # 配置文件
+    "package.json", "pyproject.toml", "setup.py", "setup.cfg",
+    "Cargo.toml", "go.mod", "pom.xml", "build.gradle",
+    "Makefile", "Dockerfile", "docker-compose*.yml",
+    "*.toml", "*.yaml", "*.yml", "*.json",
 ]
 
 
@@ -47,7 +61,8 @@ async def fetch_github_repo_content(url: str) -> tuple[str, str, str]:
 
     summary, tree, content = await ingest_async(
         url,
-        exclude_patterns=GITHUB_EXCLUDE_PATTERNS
+        include_patterns=GITHUB_INCLUDE_PATTERNS,
+        exclude_patterns=GITHUB_EXCLUDE_PATTERNS,
     )
     return summary, tree, content
 
@@ -116,7 +131,7 @@ class NewProjectAnalyseAgent(BaseAgent):
 - 确保 JSON 格式正确，可以被解析
 """
 
-    def get_prompt_for_github(self, url: str, summary: str, tree: str, content: str) -> str:
+    def get_prompt_for_github(self, url: str, summary: str, content: str) -> str:
         """获取 GitHub 仓库的 Prompt（使用 gitingest 内容）"""
         current_date = datetime.now().strftime("%Y%m%d")
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -129,15 +144,12 @@ class NewProjectAnalyseAgent(BaseAgent):
 ### 概要
 {summary}
 
-### 目录结构
-{tree}
-
-### 源代码内容
+### 文件内容
 {content}
 
 ## 任务
 
-1. 从上方目录结构中提取 owner 和 repo，使用 GitHub API 获取项目统计信息：
+1. 从 URL 中提取 owner 和 repo，使用 GitHub API 获取项目统计信息：
    - 访问 https://api.github.com/repos/{{owner}}/{{repo}} 获取 star、fork 数量和最后更新时间
    - 访问 https://api.github.com/repos/{{owner}}/{{repo}}/commits?per_page=1 获取最后 commit 时间
 
@@ -165,9 +177,6 @@ class NewProjectAnalyseAgent(BaseAgent):
       {{"text": "主要模块1", "children": ["子模块1.1", "子模块1.2"]}},
       {{"text": "主要模块2", "children": ["子模块2.1", "子模块2.2"]}}
     ]}},
-    {{"type": "heading_1", "content": "项目结构"}},
-    {{"type": "code", "content": "简化的目录树形结构，只保留关键目录和文件", "language": "text"}},
-    {{"type": "paragraph", "content": "项目结构说明，解释主要目录的用途..."}},
     {{"type": "heading_1", "content": "部署说明"}},
     {{"type": "bulleted_list", "items": ["环境要求: ...", "安装步骤: ...", "启动命令: ..."]}},
     {{"type": "divider"}},
@@ -190,9 +199,10 @@ class NewProjectAnalyseAgent(BaseAgent):
 - to_do: 待办事项（content 和 checked 字段）
 
 **重要:**
+- 禁止使用 firecrawl 工具，仓库内容已在上方提供
+- 使用 mcp__fetch__fetch 工具访问 GitHub API 获取统计信息
 - title 格式必须为: "项目名称-中文标题-{current_date}"
 - 必须获取并显示 star/fork/最后提交时间，使用 callout 块展示
-- 项目结构使用 code 块展示简化的目录树，后跟 paragraph 说明
 - 部署说明从 README、Dockerfile、package.json 等文件中提取
 - 任务时间必须放在内容最后
 - 最终必须输出上述 JSON 格式
@@ -212,8 +222,8 @@ class NewProjectAnalyseAgent(BaseAgent):
             str: 生成的 Prompt
         """
         if github_content is not None:
-            summary, tree, content = github_content
-            return self.get_prompt_for_github(url, summary, tree, content)
+            summary, _tree, content = github_content
+            return self.get_prompt_for_github(url, summary, content)
         else:
             return self.get_prompt_for_web(url)
 
