@@ -70,6 +70,7 @@ def get_github_prompt(url: str, summary: str, content: str) -> str:
 - to_do: 待办事项（content 和 checked 字段）
 
 **重要:**
+- 禁止使用 firecrawl 工具，仓库内容已在上方提供
 - 使用 mcp__fetch__fetch 工具访问 GitHub API 获取统计信息
 - title 格式必须为: "项目名称-中文标题-{current_date}"
 - 必须获取并显示 star/fork/最后提交时间，使用 callout 块展示
