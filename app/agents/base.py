@@ -65,6 +65,22 @@ class BaseAgent(ABC):
         """
         pass
 
+    async def pre_run(self, logger, **kwargs) -> Dict[str, Any]:
+        """
+        运行前的预处理钩子（子类可覆盖）
+
+        在 get_prompt() 调用之前执行，可用于预处理数据、修改参数等。
+        返回的字典将被合并到 kwargs 中传递给 get_prompt()。
+
+        Args:
+            logger: TaskLogger 实例，可用于记录日志
+            **kwargs: 传递给 run() 的原始参数
+
+        Returns:
+            Dict[str, Any]: 要合并到 kwargs 的额外参数
+        """
+        return {}
+
     async def run(self, **kwargs) -> None:
         """
         执行 Agent 任务
@@ -79,7 +95,11 @@ class BaseAgent(ABC):
         input_data = self.get_input_data(**kwargs)
         logger = TaskLogger(task_id, input_data)
 
-        prompt = self.get_prompt(**kwargs)
+        # 调用预处理钩子，合并返回的额外参数
+        extra_kwargs = await self.pre_run(logger, **kwargs)
+        prompt_kwargs = {**kwargs, **extra_kwargs}
+
+        prompt = self.get_prompt(**prompt_kwargs)
         options = self.get_options()
 
         # 记录用户 Prompt
