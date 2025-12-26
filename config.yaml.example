@@ -3,10 +3,26 @@ api_key: your-secret-key
 log_dir: logs
 log_level: INFO
 
+# ============================================================
+# 可用模型列表 (Model Options)
+# ============================================================
+# Claude 4 系列 (推荐):
+#   - claude-sonnet-4-20250514      : Sonnet 4, 均衡性能与成本
+#   - claude-opus-4-5-20251101      : Opus 4.5, 最强推理能力，成本最高
+#   - claude-haiku-4-5-20251001     : Haiku 4.5, 最快响应，成本最低
+#
+# Claude 3.5 系列:
+#   - claude-3-5-sonnet-20241022    : Sonnet 3.5
+#   - claude-3-5-haiku-20241022     : Haiku 3.5
+# ============================================================
+
 # newprojectanalyse agent 配置
 newprojectanalyse:
+  # model: 使用上述模型之一
   model: claude-sonnet-4-20250514
   max_turns: 15
+  # subagent_model: sonnet | haiku | opus (AgentDefinition 简写格式)
+  subagent_model: sonnet
   notion:
     token: your-notion-token
     parent_page_id: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
@@ -26,7 +42,10 @@ quicknote:
 
 # deepresearch agent 配置
 deepresearch:
+  # model: 使用上述模型之一
   model: claude-sonnet-4-20250514
+  # researcher_model: sonnet | haiku | opus (researcher subagent 使用)
+  researcher_model: haiku
   max_turns: 20
   notion:
     token: your-notion-token

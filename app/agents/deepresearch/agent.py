@@ -9,6 +9,7 @@ from app.agents.deepresearch.config import (
     MCP_SERVERS,
     SEARCH_DEPTH,
     MAX_RESULTS,
+    RESEARCHER_MODEL,
 )
 from app.agents.deepresearch.prompts.lead_agent import get_lead_agent_prompt
 from app.agents.deepresearch.prompts.researcher import get_researcher_prompt
@@ -38,7 +39,7 @@ class DeepResearchAgent(BaseAgent):
                     max_results=MAX_RESULTS,
                 ),
                 tools=["mcp__tavily__tavily-search"],
-                model="haiku",
+                model=RESEARCHER_MODEL,
             ),
         }
 

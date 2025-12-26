@@ -5,6 +5,8 @@ _agent_config = get_agent_config("newprojectanalyse")
 # 通用配置
 MODEL: str = _agent_config.get("model", "claude-sonnet-4-20250514")
 MAX_TURNS: int = _agent_config.get("max_turns", 15)
+# subagent model: sonnet | haiku | opus
+SUBAGENT_MODEL: str = _agent_config.get("subagent_model", "sonnet")
 
 # Notion 配置
 _notion_config = get_agent_notion_config("newprojectanalyse")

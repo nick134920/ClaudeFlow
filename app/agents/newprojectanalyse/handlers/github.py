@@ -1,6 +1,7 @@
 # app/agents/newprojectanalyse/handlers/github.py
 from claude_agent_sdk import AgentDefinition
 
+from app.agents.newprojectanalyse.config import SUBAGENT_MODEL
 from app.agents.newprojectanalyse.prompts.github import get_github_prompt
 
 
@@ -17,5 +18,5 @@ def get_github_agent_definition(url: str, summary: str, content: str) -> AgentDe
         description="分析 GitHub 仓库，提取项目信息、技术栈、部署说明等",
         prompt=get_github_prompt(url, summary, content),
         tools=["mcp__fetch__fetch"],
-        model="sonnet",
+        model=SUBAGENT_MODEL,
     )

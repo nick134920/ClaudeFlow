@@ -5,6 +5,8 @@ _config = get_agent_config("deepresearch")
 # 基础配置
 MODEL: str = _config.get("model", "claude-sonnet-4-20250514")
 MAX_TURNS: int = _config.get("max_turns", 20)
+# researcher subagent model: sonnet | haiku | opus
+RESEARCHER_MODEL: str = _config.get("researcher_model", "haiku")
 
 # Notion 配置
 _notion_config = get_agent_notion_config("deepresearch")
