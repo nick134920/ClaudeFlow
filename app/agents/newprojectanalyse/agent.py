@@ -18,7 +18,12 @@ from app.agents.newprojectanalyse.handlers import (
     get_web_agent_definition,
 )
 from app.agents.newprojectanalyse.prompts import get_dispatcher_prompt
-from app.agents.newprojectanalyse.schema import NOTION_OUTPUT_SCHEMA
+from app.agents.newprojectanalyse.schema import (
+    GITHUB_OUTPUT_SCHEMA,
+    WEB_OUTPUT_SCHEMA,
+    github_output_to_blocks,
+    web_output_to_blocks,
+)
 from app.services.notion import (
     NotionService,
     parse_agent_output,
@@ -61,6 +66,7 @@ class NewProjectAnalyseAgent(BaseAgent):
         super().__init__()
         self._url: str = ""
         self._github_content: tuple[str, str, str] | None = None
+        self._is_github: bool = False
 
     async def pre_run(self, logger, **kwargs) -> dict:
         """
@@ -79,15 +85,18 @@ class NewProjectAnalyseAgent(BaseAgent):
 
         self._url = url
         self._github_content = None
+        self._is_github = False
 
         if is_github_repo_url(url):
             logger.info("检测到 GitHub 仓库 URL，使用 gitingest 获取内容...")
             try:
                 self._github_content = await fetch_github_repo_content(url)
+                self._is_github = True
                 logger.info("gitingest 获取成功")
             except Exception as e:
                 logger.warning(f"gitingest 获取失败，回退到 web 分析: {e}")
                 self._github_content = None
+                self._is_github = False
 
         return {"github_content": self._github_content}
 
@@ -96,7 +105,7 @@ class NewProjectAnalyseAgent(BaseAgent):
         return get_dispatcher_prompt(url, github_content)
 
     def get_options(self) -> ClaudeAgentOptions:
-        """注册所有 subagent"""
+        """注册所有 subagent，根据类型选择不同的 schema"""
         agents = {}
 
         if self._github_content:
@@ -104,8 +113,10 @@ class NewProjectAnalyseAgent(BaseAgent):
             agents["github_analyser"] = get_github_agent_definition(
                 self._url, summary, content
             )
+            output_schema = GITHUB_OUTPUT_SCHEMA
         else:
             agents["web_analyser"] = get_web_agent_definition(self._url)
+            output_schema = WEB_OUTPUT_SCHEMA
 
         return ClaudeAgentOptions(
             model=MODEL,
@@ -114,18 +125,24 @@ class NewProjectAnalyseAgent(BaseAgent):
             mcp_servers=MCP_SERVERS,
             agents=agents,
             allowed_tools=["Task"],
-            output_format=NOTION_OUTPUT_SCHEMA,
+            output_format=output_schema,
         )
 
     def get_input_data(self, url: str) -> dict:
         return {"url": url}
 
     async def process_structured_output(self, structured_output: dict, **kwargs) -> None:
-        """处理结构化输出，写入 Notion"""
+        """处理结构化输出，转换并写入 Notion"""
         if not structured_output:
             return
 
-        self._write_to_notion(structured_output)
+        # 根据类型转换为 blocks 格式
+        if self._is_github:
+            data = github_output_to_blocks(structured_output)
+        else:
+            data = web_output_to_blocks(structured_output)
+
+        self._write_to_notion(data)
 
     async def process_final_output(self, final_text: str, **kwargs) -> None:
         """处理文本输出（回退方案），解析 JSON 后写入 Notion"""
@@ -133,7 +150,17 @@ class NewProjectAnalyseAgent(BaseAgent):
             return
 
         parsed = parse_agent_output(final_text)
-        self._write_to_notion(parsed)
+
+        # 检查是否是新格式（有 stats 或 content_structure 字段）
+        if "stats" in parsed:
+            data = github_output_to_blocks(parsed)
+        elif "content_structure" in parsed:
+            data = web_output_to_blocks(parsed)
+        else:
+            # 旧格式，直接使用 blocks
+            data = parsed
+
+        self._write_to_notion(data)
 
     def _write_to_notion(self, data: dict) -> None:
         """写入 Notion 页面"""

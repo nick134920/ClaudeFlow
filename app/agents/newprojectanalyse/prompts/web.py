@@ -16,48 +16,30 @@ def get_web_prompt(url: str) -> str:
 
 3. 分析网页内容，提取核心信息并总结
 
-4. 将内容总结并输出为以下 JSON 格式（必须用 ```json 包裹）：
+4. 返回以下 JSON 结构：
 
-```json
 {{
   "title": "网站名称-中文标题-{current_date}",
-  "blocks": [
-    {{"type": "bookmark", "url": "{url}"}},
-    {{"type": "divider"}},
-    {{"type": "heading_1", "content": "内容概述"}},
-    {{"type": "paragraph", "content": "网页内容的简要概述..."}},
-    {{"type": "heading_1", "content": "核心要点"}},
-    {{"type": "bulleted_list", "items": ["要点1", "要点2", "要点3", "要点4", "要点5"]}},
-    {{"type": "heading_1", "content": "详细总结"}},
-    {{"type": "paragraph", "content": "200-300字的详细总结，包含主要观点、关键信息等..."}},
-    {{"type": "heading_1", "content": "内容结构"}},
-    {{"type": "bulleted_list", "items": [
-      {{"text": "主要章节1", "children": ["子内容1.1", "子内容1.2"]}},
-      {{"text": "主要章节2", "children": ["子内容2.1", "子内容2.2"]}}
-    ]}},
-    {{"type": "divider"}},
-    {{"type": "paragraph", "content": "任务时间: {current_time}"}}
-  ]
+  "url": "{url}",
+  "overview": "内容概述（100-200字），介绍网页的主要内容...",
+  "key_points": [
+    "核心要点1",
+    "核心要点2",
+    "核心要点3",
+    "核心要点4",
+    "核心要点5"
+  ],
+  "detailed_summary": "200-300字的详细总结，包含主要观点、关键信息等...",
+  "content_structure": [
+    {{"section": "主要章节1", "children": ["子内容1.1", "子内容1.2"]}},
+    {{"section": "主要章节2", "children": ["子内容2.1", "子内容2.2"]}}
+  ],
+  "task_time": "{current_time}"
 }}
-```
-
-**支持的块类型:**
-- heading_1, heading_2, heading_3: 标题（content 字段）
-- paragraph: 段落（content 字段）
-- bulleted_list: 无序列表，支持两种格式:
-  - 简单列表: items 为字符串数组 ["item1", "item2"]
-  - 嵌套列表: items 为对象数组 [{{"text": "父项", "children": ["子项1", "子项2"]}}]
-- numbered_list: 有序列表（items 字段，字符串数组）
-- code: 代码块（content 和 language 字段）
-- divider: 分割线（无额外字段）
-- bookmark: 书签链接（url 字段）
-- callout: 标注块（content 和 emoji 字段）
-- to_do: 待办事项（content 和 checked 字段）
 
 **重要:**
 - title 格式必须为: "网站名称-中文标题-{current_date}"
-- 任务时间必须放在内容最后
-- 最终必须输出上述 JSON 格式
-- JSON 必须用 ```json 代码块包裹
-- 确保 JSON 格式正确，可以被解析
+- key_points 必须包含 3-7 个要点
+- content_structure 描述网页的内容结构层次
+- task_time 已预设为 {current_time}
 """
