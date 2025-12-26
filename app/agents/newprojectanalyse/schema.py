@@ -30,20 +30,43 @@ GITHUB_OUTPUT_SCHEMA = {
                 "type": "string",
                 "description": "项目概述（100-200字）"
             },
-            "key_points": {
+            "core_features": {
                 "type": "array",
-                "description": "核心要点（5个）",
+                "description": "核心功能列表，完整列出项目的所有主要功能",
                 "items": {"type": "string"},
-                "minItems": 3,
-                "maxItems": 7
+                "minItems": 5,
+                "maxItems": 15
             },
-            "detailed_summary": {
-                "type": "string",
-                "description": "详细总结（200-300字）"
+            "tech_stack": {
+                "type": "object",
+                "description": "技术架构",
+                "properties": {
+                    "languages": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "编程语言"
+                    },
+                    "frameworks": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "框架和库"
+                    },
+                    "infrastructure": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "基础设施（数据库、缓存、消息队列等）"
+                    },
+                    "tools": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "构建工具和开发工具"
+                    }
+                },
+                "required": ["languages", "frameworks"]
             },
             "architecture": {
                 "type": "array",
-                "description": "核心逻辑/架构思维导图",
+                "description": "项目架构/模块结构",
                 "items": {
                     "type": "object",
                     "properties": {
@@ -55,6 +78,37 @@ GITHUB_OUTPUT_SCHEMA = {
                         }
                     },
                     "required": ["module", "children"]
+                }
+            },
+            "key_config": {
+                "type": "array",
+                "description": "关键配置要素",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "name": {"type": "string", "description": "配置项名称"},
+                        "description": {"type": "string", "description": "配置说明"}
+                    },
+                    "required": ["name", "description"]
+                }
+            },
+            "highlights": {
+                "type": "array",
+                "description": "项目亮点/设计特色",
+                "items": {"type": "string"},
+                "minItems": 3,
+                "maxItems": 7
+            },
+            "key_commands": {
+                "type": "array",
+                "description": "关键命令",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "command": {"type": "string", "description": "命令"},
+                        "description": {"type": "string", "description": "命令说明"}
+                    },
+                    "required": ["command", "description"]
                 }
             },
             "deployment": {
@@ -73,8 +127,9 @@ GITHUB_OUTPUT_SCHEMA = {
             }
         },
         "required": [
-            "title", "url", "stats", "overview", "key_points",
-            "detailed_summary", "architecture", "deployment", "task_time"
+            "title", "url", "stats", "overview", "core_features",
+            "tech_stack", "architecture", "key_config", "highlights",
+            "key_commands", "deployment", "task_time"
         ],
         "additionalProperties": False
     }
@@ -144,21 +199,59 @@ def github_output_to_blocks(data: dict) -> dict:
     stats = data.get("stats", {})
     stats_text = f"⭐ Stars: {stats.get('stars', 'N/A')} | 🍴 Forks: {stats.get('forks', 'N/A')} | 📅 最后提交: {stats.get('last_commit', 'N/A')}"
 
+    # 技术架构文本
+    tech_stack = data.get("tech_stack", {})
+    tech_items = []
+    if tech_stack.get("languages"):
+        tech_items.append(f"语言: {', '.join(tech_stack['languages'])}")
+    if tech_stack.get("frameworks"):
+        tech_items.append(f"框架: {', '.join(tech_stack['frameworks'])}")
+    if tech_stack.get("infrastructure"):
+        tech_items.append(f"基础设施: {', '.join(tech_stack['infrastructure'])}")
+    if tech_stack.get("tools"):
+        tech_items.append(f"工具: {', '.join(tech_stack['tools'])}")
+
+    # 关键配置
+    key_config_items = [
+        f"{item['name']}: {item['description']}"
+        for item in data.get("key_config", [])
+    ]
+
+    # 关键命令
+    key_commands_items = [
+        f"`{item['command']}`: {item['description']}"
+        for item in data.get("key_commands", [])
+    ]
+
     blocks = [
         {"type": "bookmark", "url": data["url"]},
         {"type": "callout", "content": stats_text, "emoji": "📊"},
         {"type": "divider"},
+        # 项目概述
         {"type": "heading_1", "content": "项目概述"},
         {"type": "paragraph", "content": data["overview"]},
-        {"type": "heading_1", "content": "核心要点"},
-        {"type": "bulleted_list", "items": data["key_points"]},
-        {"type": "heading_1", "content": "详细总结"},
-        {"type": "paragraph", "content": data["detailed_summary"]},
-        {"type": "heading_1", "content": "核心逻辑思维导图"},
+        # 核心功能
+        {"type": "heading_1", "content": "核心功能"},
+        {"type": "bulleted_list", "items": data.get("core_features", [])},
+        # 技术架构
+        {"type": "heading_1", "content": "技术架构"},
+        {"type": "bulleted_list", "items": tech_items},
+        # 项目结构
+        {"type": "heading_1", "content": "项目结构"},
         {"type": "bulleted_list", "items": [
             {"text": item["module"], "children": item["children"]}
             for item in data.get("architecture", [])
         ]},
+        # 关键配置要素
+        {"type": "heading_1", "content": "关键配置要素"},
+        {"type": "bulleted_list", "items": key_config_items},
+        # 项目亮点
+        {"type": "heading_1", "content": "项目亮点"},
+        {"type": "bulleted_list", "items": data.get("highlights", [])},
+        # 关键命令
+        {"type": "heading_1", "content": "关键命令"},
+        {"type": "bulleted_list", "items": key_commands_items},
+        # 部署说明
         {"type": "heading_1", "content": "部署说明"},
         {"type": "bulleted_list", "items": [
             f"环境要求: {data['deployment']['requirements']}",
