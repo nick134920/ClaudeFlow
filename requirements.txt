@@ -3,3 +3,4 @@ uvicorn
 pyyaml
 claude-agent-sdk
 notion-client
+gitingest
