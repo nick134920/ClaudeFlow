@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 
 from claude_agent_sdk import ClaudeAgentOptions
@@ -15,6 +16,40 @@ from app.services.notion import (
     parse_agent_output,
     blocks_to_notion_format,
 )
+
+
+# GitHub 仓库 URL 排除模式
+GITHUB_EXCLUDE_PATTERNS = [
+    "node_modules/*", "vendor/*", ".venv/*", "venv/*",
+    "dist/*", "build/*", ".git/*",
+    "*.lock", "*.min.js", "*.min.css",
+    "*.log", "*.pyc", "__pycache__/*"
+]
+
+
+def is_github_repo_url(url: str) -> bool:
+    """判断是否为 GitHub 仓库 URL"""
+    pattern = r'^https?://github\.com/[\w.-]+/[\w.-]+/?'
+    return bool(re.match(pattern, url))
+
+
+async def fetch_github_repo_content(url: str) -> tuple[str, str, str]:
+    """
+    获取 GitHub 仓库内容
+
+    Args:
+        url: GitHub 仓库 URL
+
+    Returns:
+        tuple: (summary, tree, content)
+    """
+    from gitingest import ingest_async
+
+    summary, tree, content = await ingest_async(
+        url,
+        exclude_patterns=GITHUB_EXCLUDE_PATTERNS
+    )
+    return summary, tree, content
 
 
 class NewProjectAnalyseAgent(BaseAgent):
